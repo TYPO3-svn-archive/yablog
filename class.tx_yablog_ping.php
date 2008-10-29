@@ -23,7 +23,7 @@
 ***************************************************************/
 
 /**
- * $Id: $
+ * $Id$
  *
  * [CLASS/FUNCTION INDEX of SCRIPT]
  */
@@ -61,14 +61,13 @@ class tx_yablog_ping {
 		if ($table == 'tt_news') {
 			// We need news id to link to a single page and single page to link to it
 			$id = $this->getNewsId($id, $pObj);
-			// TODO Check here if record is a news item and not other type!
-			// TODO Check that record is not hidden (+ time, etc. Usual enableFields)
-			$singlePid = $this->getSinglePid($this->getRecordStoragePid($id, $fields));
-			if ($singlePid) {
-				$links = $this->getPagesToPing($id, $fields);
-				if (count($links) > 0) {
-					$pageUrl = tx_pagepath_api::getPagePath($singlePid, '&tx_ttnews[tt_news]=' . $id);
-					$this->pingPages($links, $pageUrl);
+			if ($this->isVisibleNewsItem($id)) {
+				if (($singlePid = $this->getSinglePid($this->getRecordStoragePid($id, $fields)))) {
+					$links = $this->getPagesToPing($id, $fields);
+					if (count($links) > 0) {
+						$pageUrl = tx_pagepath_api::getPagePath($singlePid, '&tx_ttnews[tt_news]=' . $id);
+						$this->pingPages($links, $pageUrl, $this->getNewsItemTitle($id, $fields));
+					}
 				}
 			}
 		}
@@ -100,10 +99,44 @@ class tx_yablog_ping {
 			$pid = $fields['pid'];
 		}
 		else {
-			$record = t3lib_BEfunc::getRecord('tt_content', $id, 'pid');
+			$record = t3lib_BEfunc::getRecord('tt_news', $id, 'pid');
 			$pid = $record['pid'];
 		}
 		return $pid;
+	}
+
+	/**
+	 * Retrieves news item title
+	 *
+	 * @param	int	$id	ID of the news item
+	 * @param	array	$fields	Fields
+	 * @return	string	title
+	 */
+	protected function getNewsItemTitle($id, array $fields) {
+		$title = '';
+		if ($fields['title']) {
+			$title = $fields['title'];
+		}
+		else {
+			$record = t3lib_BEfunc::getRecord('tt_news', $id, 'title');
+			$title = $record['title'];
+		}
+		return $title;
+	}
+
+	/**
+	 * Checks if record is of the correct type and it is visible in Frontend.
+	 * Mote that we read record from the database to ensure correct state and
+	 * avoid enableFields-like manual calculations.
+	 *
+	 * @param	int	$id	ID of the item
+	 * @return	boolean	true if item is ok
+	 */
+	protected function isVisibleNewsItem($id) {
+		$record = t3lib_BEfunc::getRecordRaw('tt_news',
+			'uid=' . $id . ' AND type=0 ' . t3lib_BEfunc::deleteClause('tt_news') .
+			t3lib_BEfunc::enableFields('tt_news'), 'COUNT(*) AS counter');
+		return ($record['counter'] > 0);
 	}
 
 	/**
@@ -253,6 +286,14 @@ class tx_yablog_ping {
 		return $excerpt;
 	}
 
+	/**
+	 * Pings pages.
+	 *
+	 * @param	array	$links	Array of links to ping
+	 * @param	string	$pageUrl	URL to the news page
+	 * @param	string	$newsItemTitle	News item title
+	 * @return	void
+	 */
 	protected function pingPages($links, $pageUrl, $newsItemTitle) {
 		$formData = array(
 			'url' => $pageUrl,
@@ -265,6 +306,13 @@ class tx_yablog_ping {
 		}
 	}
 
+	/**
+	 * Posts form data to the given url
+	 *
+	 * @param	string	$url	URL to post to
+	 * @param	array	$formData	Data to post
+	 * @return	void
+	 */
 	protected function postHttpRequest($url, array $formData) {
 		// use cURL for: http, https, ftp, ftps, sftp and scp
 		if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['curlUse']) {
@@ -273,6 +321,7 @@ class tx_yablog_ping {
 				return;
 			}
 
+			// Set up cURL
 			curl_setopt($ch, CURLOPT_URL, $url);
 			curl_setopt($ch, CURLOPT_HEADER, false);
 			curl_setopt($ch, CURLOPT_NOBODY, true);
