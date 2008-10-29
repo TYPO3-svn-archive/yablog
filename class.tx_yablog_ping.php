@@ -135,7 +135,7 @@ class tx_yablog_ping {
 	protected function isVisibleNewsItem($id) {
 		$record = t3lib_BEfunc::getRecordRaw('tt_news',
 			'uid=' . $id . ' AND type=0 ' . t3lib_BEfunc::deleteClause('tt_news') .
-			t3lib_BEfunc::enableFields('tt_news'), 'COUNT(*) AS counter');
+			t3lib_BEfunc::BEenableFields('tt_news'), 'COUNT(*) AS counter');
 		return ($record['counter'] > 0);
 	}
 
