@@ -165,11 +165,11 @@ class tx_yablog_ping {
 	 */
 	protected function getPagesToPing($id, array $fields) {
 		$bodytext = $this->getNewsItemBodytext($id, $fields);
-		$links = $this->getAllLinks($id, $fields);
+		$links = $this->getAllLinks($bodytext);
 		if (count($links) > 0) {
 			$links = $this->findPingablePages($links);
+			$links = $this->getExcerpts($bodytext, $links);
 		}
-		$links = $this->getExcerpts($bodytext, $links);
 		// TODO Get excerpts! Insert uniqid(), strip_tags and find text around unique id
 		return $links;
 	}
@@ -189,6 +189,8 @@ class tx_yablog_ping {
 			$record = t3lib_BEfunc::getRecord('tt_news', $id, 'bodytext');
 			$bodytext = $record['bodytext'];
 		}
+		// TODO Convert body text from DB format to normal HTML
+		//$bodytext = $this->convertFromRTE($bodytext);
 		return $bodytext;
 	}
 	/**
@@ -376,7 +378,18 @@ class tx_yablog_ping {
 			fclose($fp);
 		}
 	}
+/*
+	protected function convertFromRTE($bodytext, $storagePid) {
+		$RTEsetup = $this->BE_USER->getTSConfig('RTE', t3lib_BEfunc::getPagesTSconfig($storagePid));
+		$thisConfig = t3lib_BEfunc::RTEsetup($RTEsetup['properties'], 'tt_news', $vconf['field'], $theTypeString);
 
+			// Get RTE object, draw form and set flag:
+		$RTEobj = &t3lib_BEfunc::RTEgetObj();
+		if (is_object($RTEobj))	{
+			$fieldArray[$vconf['field']] = $RTEobj->transformContent('db',$fieldArray[$vconf['field']],$table,$vconf['field'],$currentRecord,$vconf['spec'],$thisConfig,'',$currentRecord['pid']);
+		}
+	}
+*/
 }
 
 if (defined('TYPO3_MODE') && $TYPO3_CONF_VARS[TYPO3_MODE]['XCLASS']['ext/yablog/class.tx_yablog_ping.php']) {

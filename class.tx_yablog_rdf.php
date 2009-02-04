@@ -56,7 +56,7 @@ class tx_yablog_rdf {
 				$commentsEnabled = false;
 			}
 			if ($commentsEnabled) {
-				$url = t3lib_div::getIndpEnv('REQUEST_URI');
+				$url = t3lib_div::getIndpEnv('TYPO3_REQUEST_URL');
 				$pid = $this->getCommentsPid($pObj);
 				$clearCache = $GLOBALS['TYPO3_DB']->cleanIntList($pObj->cObj->data['pid'] . ',' . $pObj->conf['tx_yablog']['clearCache']);
 				$data = base64_encode(serialize(array(
@@ -107,7 +107,7 @@ class tx_yablog_rdf {
 		// Get comments instances
 		$commentsRecords = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('pi_flexform',
 				'tt_content', 'pid=' . intval($currentPid) .
-				'AND CType=\'list\' AND list_type=\'comments_pi1\'' .
+				' AND CType=\'list\' AND list_type=\'comments_pi1\'' .
 				$pObj->cObj->enableFields('tt_content'));
 		foreach ($commentsRecords as $commentRecord) {
 			$flexform = t3lib_div::xml2array($commentRecord['pi_flexform']);
